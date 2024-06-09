@@ -1,46 +1,100 @@
-
+from tkinter import Image
+import streamlit as st
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, VideoTransformerBase
+from ultralytics import YOLO
 import cv2
 import numpy as np
+import tempfile
 import av
-import mediapipe as mp
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
-mp_drawing = mp.solutions.drawing_utils
-mp_drawing_styles = mp.solutions.drawing_styles
-mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(
-    model_complexity=0,
-    min_detection_confidence=0.5,
-    min_tracking_confidence=0.5
-)
-def process(image):
-    image.flags.writeable = False
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    results = hands.process(image)
-# Draw the hand annotations on the image.
-    image.flags.writeable = True
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    if results.multi_hand_landmarks:
-      for hand_landmarks in results.multi_hand_landmarks:
-        mp_drawing.draw_landmarks(
-            image,
-            hand_landmarks,
-            mp_hands.HAND_CONNECTIONS,
-            mp_drawing_styles.get_default_hand_landmarks_style(),
-            mp_drawing_styles.get_default_hand_connections_style())
-    return cv2.flip(image, 1)
-RTC_CONFIGURATION = RTCConfiguration(
-    {"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]}
-)
-class VideoProcessor:
-    def recv(self, frame):
+
+# Load your model
+model = YOLO('best.pt')
+
+# Function to process the frame and perform predictions
+def process_frame(frame):
+    results = model.predict(source=frame, save=False, show=False)
+    for result in results:
+        boxes = result.boxes
+        for box in boxes:
+            coords = box.xyxy[0].tolist()
+            x1, y1, x2, y2 = int(coords[0]), int(coords[1]), int(coords[2]), int(coords[3])
+            cls = int(box.cls.item())
+            conf = box.conf.item()
+            label = f'{model.names[cls]}: {conf:.2f}'  # Use model.names for class labels
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
+    return frame
+
+class VideoTransformer(VideoTransformerBase):
+    def __init__(self):
+        self.model = model
+
+    def transform(self, frame):
         img = frame.to_ndarray(format="bgr24")
-img = process(img)
-return av.VideoFrame.from_ndarray(img, format="bgr24")
-webrtc_ctx = webrtc_streamer(
-    key="WYH",
-    mode=WebRtcMode.SENDRECV,
-    rtc_configuration=RTC_CONFIGURATION,
-    media_stream_constraints={"video": True, "audio": False},
-    video_processor_factory=VideoProcessor,
-    async_processing=True,
-)
+        processed_frame = process_frame(img)
+        return av.VideoFrame.from_ndarray(processed_frame, format="bgr24")
+
+# Streamlit App
+st.title('Real-time YOLO Object Detection')
+
+# Option to choose between uploaded file and webcam
+option = st.radio('Choose Input Source:', ('Upload File', 'Webcam'))
+
+if option == 'Upload File':
+    uploaded_file = st.file_uploader("Choose an image or video...", type=["jpg", "jpeg", "png", "mp4", "avi", "mov"])
+    if uploaded_file is not None:
+        file_type = uploaded_file.type
+        if file_type in ["image/jpg", "image/jpeg", "image/png"]:
+            # If the uploaded file is an image
+            image = Image.open(uploaded_file)
+            frame = np.array(image)
+            processed_frame = process_frame(frame)
+            st.image(processed_frame, caption='Processed Image', use_column_width=True)
+
+        elif file_type in ["video/mp4", "video/avi", "video/mov"]:
+            # If the uploaded file is a video
+            tfile = tempfile.NamedTemporaryFile(delete=False)
+            tfile.write(uploaded_file.read())
+            cap = cv2.VideoCapture(tfile.name)
+            stframe = st.empty()
+
+            output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4').name
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out = cv2.VideoWriter(output_path, fourcc, 20.0, (int(cap.get(3)), int(cap.get(4))))
+
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    break
+                # Convert BGR frame to RGB
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                processed_frame = process_frame(frame_rgb)
+                out.write(cv2.cvtColor(processed_frame, cv2.COLOR_RGB2BGR))
+                stframe.image(processed_frame, channels="RGB")
+
+            cap.release()
+            out.release()
+
+            # Provide download link for processed video
+            with open(output_path, 'rb') as f:
+                st.download_button('Download Processed Video', f, file_name='processed_video.mp4')
+
+elif option == 'Webcam':
+    webrtc_ctx = webrtc_streamer(
+        key="example",
+        mode=WebRtcMode.SENDRECV,
+        video_transformer_factory=VideoTransformer,
+        media_stream_constraints={"video": True, "audio": False},
+    )
+
+    if webrtc_ctx.video_transformer:
+        webrtc_ctx.video_transformer.model = model
+
+    # Placeholder for the download button
+    st_placeholder = st.empty()
+
+    # Process the video frames
+    if webrtc_ctx.state.playing:
+        st_placeholder.info("Processing webcam feed...")
+    else:
+        st_placeholder.empty()
