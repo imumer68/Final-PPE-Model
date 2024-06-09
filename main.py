@@ -1,11 +1,12 @@
-from tkinter import Image
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, VideoTransformerBase
 from ultralytics import YOLO
 import cv2
+from PIL import Image
 import numpy as np
 import tempfile
 import av
+import time
 
 # Load your model
 model = YOLO('best.pt')
