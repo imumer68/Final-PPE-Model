@@ -75,14 +75,13 @@ elif option == 'Webcam':
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
-        st.error("Could not open webcam.")
+        st.error("Could not open webcam. Please ensure it is connected and accessible, and allow browser permissions.")
     else:
-        output_path = 'webcam_output.mp4'
+        output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4').name
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         out = cv2.VideoWriter(output_path, fourcc, 20.0, (int(cap.get(3)), int(cap.get(4))))
 
         start_time = time.time()
-        frames = []
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -90,7 +89,6 @@ elif option == 'Webcam':
             # Convert BGR frame to RGB
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             processed_frame = process_frame(frame_rgb)
-            frames.append(processed_frame)
             out.write(cv2.cvtColor(processed_frame, cv2.COLOR_RGB2BGR))
             stframe.image(processed_frame, channels="RGB", use_column_width=True)
 
