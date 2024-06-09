@@ -4,5 +4,4 @@ opencv-python>=4.10.0.82
 numpy>=1.26.4
 pillow>=10.3.0
 streamlit>=1.35.0
-streamlit-webrtc>=0.41.0
-av>=8.0.3
+streamlit-webrtc>=0.35.0
