@@ -10,7 +10,6 @@ import os
 # Load your model
 model = YOLO('best.pt')
 
-
 # Function to process the frame and perform predictions
 def process_frame(frame):
     results = model.predict(source=frame, save=False, show=False)
@@ -25,7 +24,6 @@ def process_frame(frame):
             cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
             cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
     return frame
-
 
 # Streamlit App
 st.title('Real-time YOLO Object Detection')
@@ -51,7 +49,7 @@ if option == 'Upload File':
             cap = cv2.VideoCapture(tfile.name)
             stframe = st.empty()
 
-            output_path = 'output.mp4'
+            output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4').name
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             out = cv2.VideoWriter(output_path, fourcc, 20.0, (int(cap.get(3)), int(cap.get(4))))
 
@@ -76,7 +74,7 @@ elif option == 'Webcam':
     stframe = st.empty()
     cap = cv2.VideoCapture(0)
 
-    output_path = 'webcam_output.mp4'
+    output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4').name
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_path, fourcc, 20.0, (int(cap.get(3)), int(cap.get(4))))
 
