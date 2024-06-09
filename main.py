@@ -4,7 +4,7 @@ import cv2
 from PIL import Image
 import numpy as np
 import tempfile
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, VideoFrame, WebRtcMode
+import time
 
 # Load your model
 model = YOLO('best.pt')
@@ -70,33 +70,34 @@ if option == 'Upload File':
                 st.download_button('Download Processed Video', f, file_name='processed_video.mp4')
 
 elif option == 'Webcam':
-    class VideoProcessor(VideoProcessorBase):
-        def __init__(self):
-            self.frame = None
+    stframe = st.empty()
+    cap = cv2.VideoCapture(0)
 
-        def recv(self, frame: VideoFrame) -> VideoFrame:
-            img = frame.to_ndarray(format="bgr24")
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img = process_frame(img)
-            return VideoFrame.from_ndarray(img, format="rgb24")
-
-    ctx = webrtc_streamer(key="example", mode=WebRtcMode.SENDRECV, video_processor_factory=VideoProcessor, media_stream_constraints={"video": True, "audio": False})
-
-    if ctx.video_processor:
-        st.write("Press the 'Download Recorded Webcam Video' button after stopping the video stream.")
-
-    # Provide download link for webcam video after processing is done
-    if st.button('Download Recorded Webcam Video'):
+    if not cap.isOpened():
+        st.error("Could not open webcam.")
+    else:
         output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4').name
-        out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), 20, (640, 480))
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_path, fourcc, 20.0, (int(cap.get(3)), int(cap.get(4))))
 
-        while True:
-            if ctx.video_processor and ctx.video_processor.frame is not None:
-                frame = ctx.video_processor.frame
-                out.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
-            else:
+        start_time = time.time()
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            # Convert BGR frame to RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            processed_frame = process_frame(frame_rgb)
+            out.write(cv2.cvtColor(processed_frame, cv2.COLOR_RGB2BGR))
+            stframe.image(processed_frame, channels="RGB", use_column_width=True)
+
+            # Stop recording after 5 minutes
+            if time.time() - start_time > 300:
                 break
 
+        cap.release()
         out.release()
+
+        # Provide download link for webcam video after processing is done
         with open(output_path, 'rb') as f:
             st.download_button('Download Recorded Webcam Video', f, file_name='webcam_output.mp4')
