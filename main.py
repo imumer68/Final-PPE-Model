@@ -5,7 +5,6 @@ from PIL import Image
 import numpy as np
 import tempfile
 import time
-import os
 
 # Load your model
 model = YOLO('best.pt')
@@ -74,28 +73,31 @@ elif option == 'Webcam':
     stframe = st.empty()
     cap = cv2.VideoCapture(0)
 
-    output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4').name
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(output_path, fourcc, 20.0, (int(cap.get(3)), int(cap.get(4))))
+    if not cap.isOpened():
+        st.error("Could not open webcam.")
+    else:
+        output_path = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4').name
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_path, fourcc, 20.0, (int(cap.get(3)), int(cap.get(4))))
 
-    start_time = time.time()
-    while cap.isOpened():
-        ret, frame = cap.read()
-        if not ret:
-            break
-        # Convert BGR frame to RGB
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        processed_frame = process_frame(frame_rgb)
-        out.write(cv2.cvtColor(processed_frame, cv2.COLOR_RGB2BGR))
-        stframe.image(processed_frame, channels="RGB", use_column_width=True)
+        start_time = time.time()
+        while cap.isOpened():
+            ret, frame = cap.read()
+            if not ret:
+                break
+            # Convert BGR frame to RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            processed_frame = process_frame(frame_rgb)
+            out.write(cv2.cvtColor(processed_frame, cv2.COLOR_RGB2BGR))
+            stframe.image(processed_frame, channels="RGB", use_column_width=True)
 
-        # Stop recording after 5 minutes
-        if time.time() - start_time > 300:
-            break
+            # Stop recording after 5 minutes
+            if time.time() - start_time > 300:
+                break
 
-    cap.release()
-    out.release()
+        cap.release()
+        out.release()
 
-    # Provide download link for webcam video
-    with open(output_path, 'rb') as f:
-        st.download_button('Download Recorded Webcam Video', f, file_name='webcam_output.mp4')
+        # Provide download link for webcam video after processing is done
+        with open(output_path, 'rb') as f:
+            st.download_button('Download Recorded Webcam Video', f, file_name='webcam_output.mp4')
