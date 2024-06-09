@@ -5,6 +5,7 @@ from PIL import Image
 import numpy as np
 import tempfile
 import time
+import os
 
 # Load your model
 model = YOLO('best.pt')
@@ -27,28 +28,24 @@ def process_frame(frame):
 
 
 # Streamlit App
-st.title('YOLO Object Detection')
-st.write('Upload an image or video and the model detects the objects and shows the output.')
-# Option to choose between uploaded file and webcam
-st.write("### Choose Input Source:")
-col1, col2 = st.columns(2)
-with col1:
-    upload_button = st.button('Upload File')
-with col2:
-    webcam_button = st.button('Webcam')
+st.title('Real-time YOLO Object Detection')
 
-if upload_button:
+# Option to choose between uploaded file and webcam
+option = st.radio('Choose Input Source:', ('Upload File', 'Webcam'))
+
+if option == 'Upload File':
     uploaded_file = st.file_uploader("Choose an image or video...", type=["jpg", "jpeg", "png", "mp4", "avi", "mov"])
     if uploaded_file is not None:
-        # If the uploaded file is an image
-        if uploaded_file.type in ["image/jpg", "image/jpeg", "image/png"]:
+        file_type = uploaded_file.type
+        if file_type in ["image/jpg", "image/jpeg", "image/png"]:
+            # If the uploaded file is an image
             image = Image.open(uploaded_file)
             frame = np.array(image)
             processed_frame = process_frame(frame)
             st.image(processed_frame, caption='Processed Image', use_column_width=True)
 
-        # If the uploaded file is a video
-        elif uploaded_file.type in ["video/mp4", "video/avi", "video/mov"]:
+        elif file_type in ["video/mp4", "video/avi", "video/mov"]:
+            # If the uploaded file is a video
             tfile = tempfile.NamedTemporaryFile(delete=False)
             tfile.write(uploaded_file.read())
             cap = cv2.VideoCapture(tfile.name)
@@ -75,7 +72,7 @@ if upload_button:
             with open(output_path, 'rb') as f:
                 st.download_button('Download Processed Video', f, file_name='processed_video.mp4')
 
-if webcam_button:
+elif option == 'Webcam':
     stframe = st.empty()
     cap = cv2.VideoCapture(0)
 
