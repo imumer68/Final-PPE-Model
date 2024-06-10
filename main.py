@@ -1,5 +1,5 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration, VideoTransformerBase
 import av
 
 st.title("WebRTC Video Stream")
@@ -23,18 +23,25 @@ class VideoTransformer(VideoTransformerBase):
         # Add any image processing here
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-webrtc_ctx = webrtc_streamer(
-    key="example",
-    mode=WebRtcMode.SENDRECV,
-    rtc_configuration=RTC_CONFIGURATION,
-    video_transformer_factory=VideoTransformer,
-    media_stream_constraints={"video": True, "audio": False},
-    async_processing=True,
-)
+def main():
+    webrtc_ctx = webrtc_streamer(
+        key="example",
+        mode=WebRtcMode.SENDRECV,
+        rtc_configuration=RTC_CONFIGURATION,
+        video_transformer_factory=VideoTransformer,
+        media_stream_constraints={"video": True, "audio": False},
+        async_processing=True,
+    )
 
-if webrtc_ctx.state.playing:
-    st.write("WebRTC connection established.")
-else:
-    st.write("Waiting for WebRTC connection...")
+    if webrtc_ctx.state.playing:
+        st.write("WebRTC connection established.")
+    else:
+        st.write("Waiting for WebRTC connection...")
 
-st.write("This is a simple Streamlit app to stream video using WebRTC.")
+    st.write(f"WebRTC context state: {webrtc_ctx.state}")
+
+    if webrtc_ctx.ice_connection_state:
+        st.write(f"ICE connection state: {webrtc_ctx.ice_connection_state}")
+
+if __name__ == "__main__":
+    main()
