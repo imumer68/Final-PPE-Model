@@ -1,4 +1,3 @@
-
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, WebRtcMode, RTCConfiguration
 from ultralytics import YOLO
