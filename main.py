@@ -1,5 +1,5 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, WebRtcMode, RTCConfiguration
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase, WebRtcMode
 from ultralytics import YOLO
 import cv2
 import numpy as np
@@ -9,24 +9,14 @@ import tempfile
 # Load your model
 model = YOLO('best.pt')
 
-# WebRTC configuration
-RTC_CONFIGURATION = RTCConfiguration({
-    "iceServers": [
-        {"urls": ["stun:stun.l.google.com:19302"]}
-    ]
-})
-
 
 # VideoTransformer for applying YOLO detection
 class VideoTransformer(VideoTransformerBase):
-    def __init__(self):
-        self.model = YOLO('best.pt')
-
     def transform(self, frame):
         image = frame.to_ndarray(format="bgr24")
 
         # Process frame using YOLO model
-        results = self.model.predict(source=image, save=False, show=False)
+        results = model.predict(source=image, save=False, show=False)
         for result in results:
             boxes = result.boxes
             for box in boxes:
@@ -34,7 +24,7 @@ class VideoTransformer(VideoTransformerBase):
                 x1, y1, x2, y2 = int(coords[0]), int(coords[1]), int(coords[2]), int(coords[3])
                 cls = int(box.cls.item())
                 conf = box.conf.item()
-                label = f'{self.model.names[cls]}: {conf:.2f}'  # Use model.names for class labels
+                label = f'{model.names[cls]}: {conf:.2f}'  # Use model.names for class labels
                 cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
                 cv2.putText(image, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
@@ -106,7 +96,4 @@ if option == 'Upload File':
                 st.download_button('Download Processed Video', f, file_name='processed_video.mp4')
 
 elif option == 'Webcam':
-    webrtc_streamer(key="sample",
-                    mode=WebRtcMode.SENDRECV,
-                    video_transformer_factory=VideoTransformer,
-                    rtc_configuration=RTC_CONFIGURATION)
+    webrtc_streamer(key="example", mode=WebRtcMode.SENDRECV, video_processor_factory=VideoTransformer)
