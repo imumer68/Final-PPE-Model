@@ -1,4 +1,4 @@
-threading
+threaded
 opencv-python
 streamlit
 matplotlib
