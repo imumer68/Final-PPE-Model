@@ -1,5 +1,3 @@
-threaded
-opencv-python
-streamlit
-matplotlib
 streamlit-webrtc
+av
+
