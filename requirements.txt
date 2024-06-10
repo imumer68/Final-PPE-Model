@@ -1,4 +1,2 @@
-opencv-python
 streamlit>=1.30
 streamlit-webrtc>=0.47
-numpy>=1.26
