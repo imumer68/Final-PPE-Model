@@ -96,4 +96,4 @@ if option == 'Upload File':
                 st.download_button('Download Processed Video', f, file_name='processed_video.mp4')
 
 elif option == 'Webcam':
-    webrtc_streamer(key="example", mode=WebRtcMode.SENDRECV, video_transformer_factory=VideoTransformer)
+    webrtc_streamer(key="example", mode=WebRtcMode.SENDRECV,  video_processor_factory=VideoTransformer)
