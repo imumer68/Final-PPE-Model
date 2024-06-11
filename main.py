@@ -6,17 +6,19 @@ import numpy as np
 from PIL import Image
 import tempfile
 
-# Load your model
+# Load your model once at the start
 model = YOLO('best.pt')
 
 # WebRTC configuration
-RTC_CONFIGURATION = RTCConfiguration()
-
+RTC_CONFIGURATION = RTCConfiguration({
+    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+})
 
 # VideoTransformer for applying YOLO detection
 class VideoTransformer(VideoTransformerBase):
     def __init__(self):
-        self.model = YOLO('best.pt')
+        # Use the global model loaded at the start
+        self.model = model
 
     def transform(self, frame):
         image = frame.to_ndarray(format="bgr24")
@@ -35,7 +37,6 @@ class VideoTransformer(VideoTransformerBase):
                 cv2.putText(image, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
         return image
-
 
 # Streamlit App
 st.title('Real-time YOLO Object Detection')
