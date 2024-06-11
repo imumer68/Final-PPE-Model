@@ -5,10 +5,6 @@ import cv2
 import numpy as np
 from PIL import Image
 import tempfile
-import logging
-
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)
 
 # Load your model once at the start
 model = YOLO('best.pt')
@@ -117,12 +113,3 @@ elif option == 'Webcam':
 
     if webrtc_ctx.video_transformer:
         webrtc_ctx.video_transformer.model = model
-
-    # Log WebRTC context state
-    logging.debug(f"WebRTC context: {webrtc_ctx}")
-    st.write(f"WebRTC context: {webrtc_ctx}")
-
-    if webrtc_ctx.state.playing:
-        st.write("Webcam is active.")
-    else:
-        st.write("Waiting for webcam to be active...")
