@@ -9,15 +9,18 @@ import tempfile
 # Load your model once at the start
 model = YOLO('best.pt')
 
-# WebRTC configuration
+# WebRTC's configuration with updated RTCConfiguration
 RTC_CONFIGURATION = RTCConfiguration({
-    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
+    "iceServers": [
+        {"urls": "stun:stun.l.google.com:19302"},
+        {"urls": "turn:YOUR_TURN_SERVER", "username": "YOUR_USERNAME", "credential": "YOUR_CREDENTIAL"}
+    ]
 })
+
 
 # VideoTransformer for applying YOLO detection
 class VideoTransformer(VideoTransformerBase):
     def __init__(self):
-        # Use the global model loaded at the start
         self.model = model
 
     def transform(self, frame):
@@ -37,6 +40,7 @@ class VideoTransformer(VideoTransformerBase):
                 cv2.putText(image, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
         return image
+
 
 # Streamlit App
 st.title('Real-time YOLO Object Detection')
@@ -103,13 +107,7 @@ if option == 'Upload File':
                 st.download_button('Download Processed Video', f, file_name='processed_video.mp4')
 
 elif option == 'Webcam':
-    webrtc_ctx = webrtc_streamer(
-        key="example",
-        mode=WebRtcMode.SENDRECV,
-        rtc_configuration=RTC_CONFIGURATION,
-        video_processor_factory=VideoTransformer,
-        async_processing=True,
-    )
-
-    if webrtc_ctx.video_transformer:
-        webrtc_ctx.video_transformer.model = model
+    webrtc_streamer(key="sample",
+                    mode=WebRtcMode.SENDRECV,
+                    video_processor_factory=VideoTransformer,
+                    rtc_configuration=RTC_CONFIGURATION)
